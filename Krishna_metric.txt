@@ -1,0 +1,63 @@
+alter session set current_schema = WFM_ADMIN;        
+-- no of Berts created on each Wave.
+Select Berts_Count,CKTS_COUNT,A.Wave_Id,TRUNC((Berts_Count*100/CKTS_COUNT),2) SUCCESS_PER FROM 
+(Select Count(Wave_Id) Berts_Count, Wave_Id From Nt_Bert_Cut_Sheet Where Bert_Id Is Not Null Group By Wave_Id Order By Wave_Id) A,
+(Select Count(Wave_Id) Ckts_Count, Wave_Id From Nt_Bert_Cut_Sheet Group By Wave_Id Order By Wave_Id) B 
+WHERE A.WAVE_ID = B.WAVE_ID;
+
+-- Count of waves on each status.
+SELECT STATUS_NAME,COUNT(WAVE_ID) FROM NT_WAVES A,NT_STATUS_REF B WHERE A.WAVE_STATUS_ID = B.STATUS_ID AND MIGRATION_TYPE_ID = 2 GROUP BY STATUS_NAME;
+
+-- How many times, we used our screens.
+Select To_Char(Audit_Time,'MM/DD/YYYY') As Audit_Date,Screen_Name,Count(Screen_Name) From Nc_Usage_Metrics Where Audit_Time > Sysdate - 7 And Module_Name Like '%MX960 Migration%'
+Group By Screen_Name,To_Char(Audit_Time,'MM/DD/YYYY') ORDER BY 1,2;
+
+--Berts Issued and Migration Due date && Berts Issued and Bert Due date.
+Select A.Wave_Id,Start_Date,End_Date,Create_Time,Close_Time,Bert_Due_Date,C.BERT_ISSUED,
+Trunc((Close_Time-Create_Time),2) As Wave_Duration,Trunc((End_Date-Start_Date),2) As Estimated_Wave_Duration,
+Trunc((Close_Time-End_Date),2) As Wave_Duration_Diff,TRUNC(CLOSE_TIME-BERT_ISSUED) AS BERT_ISSUED_DIFF
+From Nt_Waves A,Nt_Wave_Details B,(Select Max(Changed_Time) As Bert_Issued,Record_Id As Wave_Id From Nt_Field_History, Nt_Waves  Where Record_Id =Wave_Id 
+AND RECORD_TYPE_ID = 2 AND CHANGED_FIELD = 'WAVE_STATUS_ID' AND CHANGED_TO = 159 GROUP BY Record_Id) c Where A.Wave_Id = B.Wave_Id AND A.Wave_Id = C.Wave_Id And Migration_Type_Id = 2 ORDER BY WAVE_ID;
+
+
+--Wave Duration.
+SELECT TRUNC(AVG(END_DATE-START_DATE),2) FROM WFM_NT.NT_WAVES WHERE END_DATE IS NOT NULL AND MIGRATION_TYPE_ID = 2;
+
+-- Individual Differences.
+SELECT
+TRUNC(AVG(OLT_TIME-START_TIME),2) AS OLT_DIFF,
+TRUNC(AVG(GWR_TIME-OLT_TIME),2) AS GWR_DIFF,
+TRUNC(AVG(BERTS_TIME-GWR_TIME),2) AS BERTS_CRT_DIFF,
+TRUNC(AVG(END_TIME-BERTS_TIME),2) AS COMPLE_DIFF
+FROM (
+SELECT WAVE_ID,(SELECT START_DATE FROM WFM_NT.NT_WAVES A WHERE A.WAVE_ID = W.WAVE_ID) START_TIME,
+(SELECT CHANGED_TIME  FROM NT_FIELD_HISTORY WHERE RECORD_ID =W.WAVE_ID
+AND RECORD_TYPE_ID = 2 AND CHANGED_FIELD = 'WAVE_STATUS_ID' AND CHANGED_TO = 157 AND CHANGE_KEY = 1 ) OLT_TIME,
+(SELECT CHANGED_TIME  FROM NT_FIELD_HISTORY WHERE RECORD_ID =W.WAVE_ID
+AND RECORD_TYPE_ID = 2 AND CHANGED_FIELD = 'WAVE_STATUS_ID' AND CHANGED_TO = 158 AND CHANGE_KEY = 2 ) GWR_TIME,
+(SELECT CHANGED_TIME  FROM NT_FIELD_HISTORY WHERE RECORD_ID =W.WAVE_ID
+AND RECORD_TYPE_ID = 2 AND CHANGED_FIELD = 'WAVE_STATUS_ID' AND CHANGED_TO = 159 AND CHANGE_KEY = 3 ) BERTS_TIME,
+(SELECT END_DATE FROM WFM_NT.NT_WAVES A WHERE A.WAVE_ID = W.WAVE_ID) END_TIME
+FROM  WFM_NT.NT_WAVES W WHERE END_DATE IS NOT NULL AND MIGRATION_TYPE_ID = 2);
+
+
+--Fallout Metrics
+SELECT 'Data Discrepancies '||TRUNC((SELECT COUNT(*) FROM WFM_NT.NT_CKT_MIGRATIONS WHERE STATUS_ID = 153)*100/(SELECT COUNT(*) FROM WFM_NT.NT_CKT_MIGRATIONS),2)||'%' FROM DUAL;
+
+-- BeRTs Failed
+Select 'BeRTs Failed '||Trunc((Select Count(*) From Wfm_Nc.Nc_Bdms_Transactions A,Wfm_Nt.Nt_Bert_Cut_Sheet B Where Transaction_Type Like '%REJECT%' And A.Wfm_Job_Id  = B.Wave_Id And A.Wave_Seq_Id = B.Wave_Seq_Id)*100/
+(Select Count(*) From Wfm_Nc.Nc_Bdms_Transactions A,Wfm_Nt.Nt_Bert_Cut_Sheet B Where A.Wfm_Job_Id  = B.Wave_Id And A.WAVE_SEQ_ID = B.WAVE_SEQ_ID),2)||'%' FROM DUAL;
+
+--Waves Cancelled
+SELECT 'Waves Cancelled '||COUNT(*) FROM  WFM_NT.NT_WAVES WHERE WAVE_STATUS_ID = 149;
+
+--Waves Created
+SELECT 'Waves Created '||COUNT(*) FROM WFM_NT.NT_WAVES WHERE MIGRATION_TYPE_ID = 2;
+
+-- BeRTs Created
+SELECT 'BeRTs Created '||COUNT(*) FROM WFM_NT.NT_BERT_CUT_SHEET WHERE BERT_ID IS NOT NULL;
+
+
+--No Of Mx960 Users
+SELECT 'No Of Mx960 Users '||COUNT(DISTINCT(USER_ID)) FROM WFM_ADMIN.Wfm_User_Roles WHERE ROLE_ID IN (Select DISTINCT ROLE_ID From WFM_ADMIN.WFM_ROLE_ACCESS
+WHERE Access_Level_ID IN (Select DISTINCT Access_Level_ID From Wfm_Access_Levels Where Access_Level_Name Like '%MX960%'));

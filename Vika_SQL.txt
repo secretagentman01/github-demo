@@ -1,0 +1,24 @@
+alter session set current_schema = vnadsdev;
+
+SELECT a.site_code,a.wfm_job_id, b.request_type_name,c.status_name,
+pc.program_code_name, pt.platform_name,
+pl.last_name || ',' || pl.first_name as PSC_Planner,
+plm.last_name || ',' || plm.first_name as PSC_Manager,
+a.created_time, a.close_time, TRUNC(a.CLOSE_TIME-a.CREATED_TIME) Interval_To_Close,
+d.review_request_time PPG_Review_Requested, d.review_complete_time PPG_Review_Completed, TRUNC(d.review_complete_time - d.review_request_time) PPG_Review_Interval,
+d.review_request_time ASG_Review_Requested, d.review_complete_time ASG_Review_Completed, TRUNC(d.review_complete_time - d.review_request_time) ASG_Review_Interval,
+d.review_request_time PE_Review_Requested, d.review_complete_time PE_Review_Completed, TRUNC(d.review_complete_time - d.review_request_time) PE_Review_Interval,
+d.review_request_time IE_Review_Requested, d.review_complete_time IE_Review_Completed, TRUNC(d.review_complete_time - d.review_request_time) IE_Review_Interval
+FROM vnadsdev.wfm_PSC_REQUESTS a
+Inner Join vnadsdev.wfm_PSC_REQUEST_TYPES b on a.REQUEST_TYPE_ID = b.REQUEST_TYPE_ID
+Inner Join vnadsdev.wfm_PSC_STATUS c on a.status_id = c.status_id
+inner join vnadsdev.wfm_PSC_REQUESTS_DETAILS dt on a.wfm_job_id = dt.wfm_job_id
+inner join vnadsdev.wfm_PSC_PROGRAM_CODES pc on pc.program_code_id = dt.program_code_id
+inner join vnadsdev.wfm_PSC_PLATFORMS pt on pt.platform_id = dt.platform_id
+left outer join vnadsdev.wfm_users pl  on a.ps_planner_id = pl.user_id
+left outer join vnadsdev.wfm_users plm  on a.ps_manager_id = plm.user_id
+left outer join  vnadsdev.wfm_psc_requests_reviewers d on a.wfm_job_id = d.wfm_job_id and d.reviewer_type_id = 1
+left outer join vnadsdev.wfm_users asgn  on a.ps_manager_id = asgn.user_id
+left outer join  vnadsdev.wfm_psc_requests_reviewers e on a.wfm_job_id = e.wfm_job_id and e.reviewer_type_id = 2
+left outer join  vnadsdev.wfm_psc_requests_reviewers f on a.wfm_job_id = f.wfm_job_id and f.reviewer_type_id = 3
+left outer join  vnadsdev.wfm_psc_requests_reviewers g on a.wfm_job_id = g.wfm_job_id and g.reviewer_type_id = 4; 
