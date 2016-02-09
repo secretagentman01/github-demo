@@ -17,8 +17,8 @@ inner join vnadsdev.wfm_PSC_PROGRAM_CODES pc on pc.program_code_id = dt.program_
 inner join vnadsdev.wfm_PSC_PLATFORMS pt on pt.platform_id = dt.platform_id
 left outer join vnadsdev.wfm_users pl  on a.ps_planner_id = pl.user_id
 left outer join vnadsdev.wfm_users plm  on a.ps_manager_id = plm.user_id
-left outer join  vnadsdev.wfm_psc_requests_reviewers d on a.wfm_job_id = d.wfm_job_id and d.reviewer_type_id = 1
+left outer join  vnadsdev.wfm_psc_requests_reviewers d on a.wfm_job_id = d.wfm_job_id and d.reviewer_type_id = 0
 left outer join vnadsdev.wfm_users asgn  on a.ps_manager_id = asgn.user_id
-left outer join  vnadsdev.wfm_psc_requests_reviewers e on a.wfm_job_id = e.wfm_job_id and e.reviewer_type_id = 2
-left outer join  vnadsdev.wfm_psc_requests_reviewers f on a.wfm_job_id = f.wfm_job_id and f.reviewer_type_id = 3
-left outer join  vnadsdev.wfm_psc_requests_reviewers g on a.wfm_job_id = g.wfm_job_id and g.reviewer_type_id = 4; 
+left outer join  vnadsdev.wfm_psc_requests_reviewers e on a.wfm_job_id = e.wfm_job_id and e.reviewer_type_id = 1
+left outer join  vnadsdev.wfm_psc_requests_reviewers f on a.wfm_job_id = f.wfm_job_id and f.reviewer_type_id = 2
+left outer join  vnadsdev.wfm_psc_requests_reviewers g on a.wfm_job_id = g.wfm_job_id and g.reviewer_type_id = 3; 
