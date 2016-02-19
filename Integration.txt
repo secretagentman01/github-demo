@@ -1,0 +1,5 @@
+
+
+Practices of Continuous Integration
+
+The story above is the overview of CI and how it works in daily life. Getting all this to work smoothly is obviously rather more than that. I'll focus now on the key practices that make up effective CI.
